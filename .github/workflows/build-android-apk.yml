@@ -31,7 +31,21 @@ jobs:
       - name: Install Android SDK platform and build tools
         run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
       - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon clean assembleDebug
+      - name: Validate APK package and bundled quiz app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          echo "APK size in bytes:"
+          stat -c '%s' "$APK"
+          echo "APK package metadata:"
+          /usr/local/lib/android/sdk/build-tools/35.0.0/aapt dump badging "$APK" | head -n 5
+          echo "Required app asset:"
+          unzip -l "$APK" | grep 'assets/index.html'
+          echo "DEX bytecode:"
+          unzip -l "$APK" | grep -E 'classes([0-9]*)?\.dex'
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
